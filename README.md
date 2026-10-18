@@ -1,6 +1,6 @@
 # asar2
 
-[![Crates.io](https://img.shields.io/crates/v/asar2.svg)](https://crates.io/crates/asar2)
+[![Crates.io](https://img.shields.io/crates/v/asar2)](https://crates.io/crates/asar2)
 [![Documentation](https://docs.rs/asar2/badge.svg)](https://docs.rs/asar2)
 [![License](https://img.shields.io/badge/license-MIT%20OR%20Apache--2.0-blue.svg)](#-license)
 
