@@ -1,9 +1,14 @@
 [package]
 name = "asar2"
-description = "A high-performance zero-copy, flat-indexed crate to read and write asar archives."
 version = "0.1.0"
 edition = "2021"
+description = "A blazing-fast, zero-copy, flat-indexed ASAR archive reader and writer."
 license = "Apache-2.0 OR MIT"
+repository = "https://github.com/TomieAi/asar2-rs"
+homepage = "https://github.com/TomieAi/asar2-rs"
+readme = "README.md"
+keywords = ["asar", "electron", "archive", "zero-copy", "filesystem"]
+categories = ["compression", "filesystem", "parser-implementations"]
 
 [dependencies]
 byteorder = "1"
