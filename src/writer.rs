@@ -6,7 +6,7 @@ use crate::{
 };
 use byteorder::{LittleEndian, WriteBytesExt};
 use std::{
-	collections::{BTreeMap, VecDeque},
+	collections::{BTreeMap, BTreeSet, VecDeque},
 	io::Write,
 	path::{Component, Path, PathBuf},
 };
@@ -14,6 +14,7 @@ use std::{
 const BLOCK_SIZE: usize = 4 * 1024 * 1024; // 4 MiB
 
 pub struct AsarWriter {
+	directories: BTreeSet<PathBuf>,
 	files: BTreeMap<PathBuf, File>,
 	symlinks: BTreeMap<PathBuf, PathBuf>,
 	buffer: Vec<u8>,
@@ -28,6 +29,7 @@ impl AsarWriter {
 
 	pub fn new_with_algorithm(hasher: HashAlgorithm) -> Self {
 		Self {
+			directories: BTreeSet::new(),
 			files: BTreeMap::new(),
 			symlinks: BTreeMap::new(),
 			buffer: Vec::new(),
@@ -50,6 +52,11 @@ impl AsarWriter {
 		executable: bool,
 	) -> Result<()> {
 		self.write_file_impl(path.as_ref(), bytes.as_ref(), executable)
+	}
+
+	pub fn write_dir(&mut self, path: impl AsRef<Path>) -> Result<()> {
+		self.directories.insert(path.as_ref().to_path_buf());
+		Ok(())
 	}
 
 	pub fn write_symlink(&mut self, path: impl AsRef<Path>, link: impl AsRef<Path>) -> Result<()> {
@@ -86,6 +93,10 @@ impl AsarWriter {
 		FinalWriter: Write,
 	{
 		let mut header = Header::new();
+		for dir in self.directories {
+			let comps = path_to_reverse_components(&dir)?;
+			recursive_add_dir_to_header(comps, &mut header);
+		}
 		for (path, file) in self.files {
 			let comps = path_to_reverse_components(&path)?;
 			recursive_add_to_header(comps, Header::File(file), &mut header);
@@ -121,12 +132,24 @@ impl AsarWriter {
 impl Default for AsarWriter {
 	fn default() -> Self {
 		Self {
+			directories: BTreeSet::new(),
 			files: BTreeMap::new(),
 			symlinks: BTreeMap::new(),
 			offset: 0,
 			buffer: Vec::new(),
 			hasher: HashAlgorithm::Sha256,
 		}
+	}
+}
+
+fn recursive_add_dir_to_header(mut path: VecDeque<String>, header: &mut Header) {
+	let header_map = match header {
+		Header::Directory { files } => files,
+		_ => return,
+	};
+	if let Some(comp) = path.pop_front() {
+		let entry = header_map.entry(comp).or_insert_with(Header::new);
+		recursive_add_dir_to_header(path, entry);
 	}
 }
 

@@ -54,6 +54,11 @@ impl<'a> AsarFile<'a> {
 	}
 
 	#[inline]
+	pub fn unpacked(&self) -> bool {
+		matches!(self.data, Cow::Owned(_))
+	}
+
+	#[inline]
 	pub const fn integrity(&self) -> Option<&FileIntegrity> {
 		self.integrity.as_ref()
 	}
@@ -74,6 +79,12 @@ pub fn normalize_str_path(path: &str) -> String {
 }
 
 impl<'a> AsarReader<'a> {
+	/// Convenience constructor to parse an in-memory ASAR buffer without external unpacked files.
+	#[inline]
+	pub fn from_bytes(data: &'a [u8]) -> Result<Self> {
+		Self::new(data, None)
+	}
+
 	/// Parse and read an asar archive from a byte buffer.
 	pub fn new(data: &'a [u8], asar_path: impl Into<Option<PathBuf>>) -> Result<Self> {
 		let (raw, begin_offset) = Header::read_from_slice(data)?;
@@ -191,6 +202,12 @@ impl<'a> AsarReader<'a> {
 		None
 	}
 
+	/// Gets information about a file with instant O(1) hash table lookup.
+	#[inline]
+	pub fn find_file(&self, path: impl AsRef<Path>) -> Option<&AsarFile<'a>> {
+		self.read(path.as_ref())
+	}
+
 	/// Read raw byte slice directly in O(1) using a string slice path.
 	#[inline]
 	pub fn read_bytes(&self, path: &str) -> Option<&[u8]> {
@@ -199,8 +216,8 @@ impl<'a> AsarReader<'a> {
 
 	/// Gets the contents of a directory in O(1).
 	#[inline]
-	pub fn read_dir(&self, path: &Path) -> Option<&[PathBuf]> {
-		self.directories.get(path).map(|paths| paths.as_slice())
+	pub fn read_dir(&self, path: impl AsRef<Path>) -> Option<&[PathBuf]> {
+		self.directories.get(path.as_ref()).map(|paths| paths.as_slice())
 	}
 }
 

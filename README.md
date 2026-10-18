@@ -2,7 +2,7 @@
 
 [![Crates.io](https://img.shields.io/crates/v/asar2.svg)](https://crates.io/crates/asar2)
 [![Documentation](https://docs.rs/asar2/badge.svg)](https://docs.rs/asar2)
-[![License](https://img.shields.io/badge/license-MIT%20OR%20Apache--2.0-blue.svg)](LICENSE)
+[![License](https://img.shields.io/badge/license-MIT%20OR%20Apache--2.0-blue.svg)](#-license)
 
 A blazing-fast, zero-copy, flat-indexed library for reading, querying, streaming, and packing Electron [ASAR archives](https://github.com/electron/asar) in Rust.
 
@@ -57,13 +57,13 @@ memmap2 = "0.9"
 
 Read files directly without copying data into intermediate buffers:
 
-```rust
+```rust,no_run
 use asar2::AsarReader;
 use std::fs;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let archive_bytes = fs::read("app.asar")?;
-    let asar = AsarReader::new(&archive_bytes)?;
+    let asar = AsarReader::from_bytes(&archive_bytes)?;
 
     // O(1) existence checks
     if asar.has_file("package.json") {
@@ -71,8 +71,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     // Direct zero-copy slice access (no allocations!)
-    let package_json_bytes: &[u8] = asar.read_bytes("package.json")?;
-    println!("File size: {} bytes", package_json_bytes.len());
+    if let Some(package_json_bytes) = asar.read_bytes("package.json") {
+        println!("File size: {} bytes", package_json_bytes.len());
+    }
 
     Ok(())
 }
@@ -82,7 +83,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 For large archives, memory-map the file to achieve near-instant opening and minimal RAM usage:
 
-```rust
+```rust,no_run
 use asar2::AsarReader;
 use memmap2::Mmap;
 use std::fs::File;
@@ -91,18 +92,20 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let file = File::open("app.asar")?;
     let mmap = unsafe { Mmap::map(&file)? };
 
-    let asar = AsarReader::new(&mmap)?;
+    let asar = AsarReader::from_bytes(&mmap)?;
 
     // Inspect files and folders
     if asar.has_dir("dist/assets") {
-        let entries = asar.read_dir("dist/assets")?;
-        for entry in entries {
-            println!("Child: {}", entry);
+        if let Some(entries) = asar.read_dir("dist/assets") {
+            for entry in entries {
+                println!("Child: {}", entry.display());
+            }
         }
     }
 
-    let asset_bytes = asar.read_bytes("dist/assets/logo.png")?;
-    println!("Asset size: {} bytes", asset_bytes.len());
+    if let Some(asset_bytes) = asar.read_bytes("dist/assets/logo.png") {
+        println!("Asset size: {} bytes", asset_bytes.len());
+    }
 
     Ok(())
 }
@@ -112,17 +115,17 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 Query detailed file information, including archive data offsets, unpacked flags, and integrity blocks:
 
-```rust
+```rust,no_run
 use asar2::AsarReader;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let buffer = std::fs::read("app.asar")?;
-    let asar = AsarReader::new(&buffer)?;
+    let asar = AsarReader::from_bytes(&buffer)?;
 
     if let Some(file_meta) = asar.find_file("src/index.js") {
-        println!("Size: {} bytes", file_meta.size);
-        println!("Data Offset in archive: {}", file_meta.offset);
-        println!("Is Unpacked: {}", file_meta.unpacked);
+        println!("Size: {} bytes", file_meta.size());
+        println!("Data Offset in archive: {}", file_meta.offset());
+        println!("Is Unpacked: {}", file_meta.unpacked());
     }
 
     Ok(())
@@ -133,7 +136,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 Pack directory structures or memory buffers into valid Electron ASAR archives with automated block integrity hashing:
 
-```rust
+```rust,no_run
 use asar2::AsarWriter;
 use std::fs::File;
 
@@ -187,8 +190,8 @@ asar2 = { version = "0.1", default-features = false }
 
 Licensed under either of:
 
-- Apache License, Version 2.0 ([LICENSE-APACHE](LICENSE-APACHE) or <http://www.apache.org/licenses/LICENSE-2.0>)
-- MIT license ([LICENSE-MIT](LICENSE-MIT) or <http://opensource.org/licenses/MIT>)
+- Apache License, Version 2.0 ([LICENSE-APACHE](https://github.com/TomieAi/asar2-rs/blob/main/LICENSE-APACHE) or <http://www.apache.org/licenses/LICENSE-2.0>)
+- MIT license ([LICENSE-MIT](https://github.com/TomieAi/asar2-rs/blob/main/LICENSE-MIT) or <http://opensource.org/licenses/MIT>)
 
 at your option.
 

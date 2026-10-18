@@ -19,6 +19,7 @@ thiserror = "1"
 
 [dev-dependencies]
 include_dir = "0.7"
+memmap2 = "0.9"
 
 [features]
 default = ["write"]
